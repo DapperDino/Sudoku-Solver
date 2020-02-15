@@ -13,10 +13,17 @@
             <ColumnDefinition Width="656*"/>
             <ColumnDefinition Width="59*" />
         </Grid.ColumnDefinitions>
-        <Image Margin="12,12,16,71" Name="imgPhoto"
-        Stretch="Fill" Grid.Column="1" Grid.ColumnSpan="2" />
+        <StackPanel Orientation="Horizontal" Grid.Column="1" Grid.ColumnSpan="2">
+            <Image Margin="12,12,16,71" Name="imgPhotoPreview"
+            Stretch="Uniform" />
+            <Image Margin="12,12,16,71" Name="imgPhotoResult"
+            Stretch="Uniform" />
+        </StackPanel>
         <Button Height="23" HorizontalAlignment="Left"
         Margin="12,0,0,34" Name="btnLoad" VerticalAlignment="Bottom"
         Width="75" Grid.Column="1" Click="btnLoad_Click" Grid.ColumnSpan="2">_Load</Button>
+        <Button Height="23" HorizontalAlignment="Left"
+        Margin="97,0,0,34" Name="btnSolve" VerticalAlignment="Bottom"
+        Width="75" Grid.Column="1" Click="btnSolve_Click" Grid.ColumnSpan="2">_Solve</Button>
     </Grid>
 </Window>
