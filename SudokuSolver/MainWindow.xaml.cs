@@ -3,6 +3,7 @@ using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 using Emgu.CV.Util;
 using Microsoft.Win32;
+using SudokuSolver.Helpers;
 using System;
 using System.Drawing;
 using System.Runtime.InteropServices;
@@ -72,7 +73,7 @@ namespace SudokuSolver
                 {
                     if (row[x] >= 128)
                     {
-                        int area = CvInvoke.FloodFill(outerBox, null, new Point(x, y), new MCvScalar(64), out System.Drawing.Rectangle _, new MCvScalar(), new MCvScalar());
+                        int area = CvInvoke.FloodFill(outerBox, null, new Point(x, y), new MCvScalar(64), out Rectangle _, new MCvScalar(), new MCvScalar());
 
                         if (area > max)
                         {
@@ -83,7 +84,7 @@ namespace SudokuSolver
                 }
             }
 
-            CvInvoke.FloodFill(outerBox, null, maxPt, new Rgb(255, 255, 255).MCvScalar, out System.Drawing.Rectangle _, new MCvScalar(), new MCvScalar());
+            CvInvoke.FloodFill(outerBox, null, maxPt, new Rgb(255, 255, 255).MCvScalar, out Rectangle _, new MCvScalar(), new MCvScalar());
 
             for (int y = 0; y < outerBox.Height; y++)
             {
@@ -93,7 +94,7 @@ namespace SudokuSolver
                 {
                     if (row[x] == 64 && x != maxPt.X && y != maxPt.Y)
                     {
-                        CvInvoke.FloodFill(outerBox, null, new Point(x, y), new MCvScalar(0), out System.Drawing.Rectangle _, new MCvScalar(), new MCvScalar());
+                        CvInvoke.FloodFill(outerBox, null, new Point(x, y), new MCvScalar(0), out Rectangle _, new MCvScalar(), new MCvScalar());
                     }
                 }
             }
@@ -231,27 +232,32 @@ namespace SudokuSolver
 
             int detTopLeft = leftA * topB - leftB * topA;
 
-            PointF ptTopLeft = new PointF((topB * leftC - leftB * topC) / detTopLeft, (leftA * topC - topA * leftC) / detTopLeft);
+            Point ptTopLeft = new Point((topB * leftC - leftB * topC) / detTopLeft, (leftA * topC - topA * leftC) / detTopLeft);
 
             double detTopRight = rightA * topB - rightB * topA;
 
-            PointF ptTopRight = new PointF((float)((topB * rightC - rightB * topC) / detTopRight), (float)((rightA * topC - topA * rightC) / detTopRight));
+            Point ptTopRight = new Point((int)((topB * rightC - rightB * topC) / detTopRight), (int)((rightA * topC - topA * rightC) / detTopRight));
 
             double detBottomRight = rightA * bottomB - rightB * bottomA;
-            PointF ptBottomRight = new PointF((float)((bottomB * rightC - rightB * bottomC) / detBottomRight), (float)((rightA * bottomC - bottomA * rightC) / detBottomRight));
+            Point ptBottomRight = new Point((int)((bottomB * rightC - rightB * bottomC) / detBottomRight), (int)((rightA * bottomC - bottomA * rightC) / detBottomRight));
             double detBottomLeft = leftA * bottomB - leftB * bottomA;
-            PointF ptBottomLeft = new PointF((float)((bottomB * leftC - leftB * bottomC) / detBottomLeft), (float)((leftA * bottomC - bottomA * leftC) / detBottomLeft));
+            Point ptBottomLeft = new Point((int)((bottomB * leftC - leftB * bottomC) / detBottomLeft), (int)((leftA * bottomC - bottomA * leftC) / detBottomLeft));
 
-            int maxLength = (int)((ptBottomLeft.X - ptBottomRight.X) * (ptBottomLeft.X - ptBottomRight.X) + (ptBottomLeft.Y - ptBottomRight.Y) * (ptBottomLeft.Y - ptBottomRight.Y));
-            int temp = (int)((ptTopRight.X - ptBottomRight.X) * (ptTopRight.X - ptBottomRight.X) + (ptTopRight.Y - ptBottomRight.Y) * (ptTopRight.Y - ptBottomRight.Y));
+            CvInvoke.Line(sudoku, ptTopRight, ptTopRight, new MCvScalar(255, 0, 0), 10);
+            CvInvoke.Line(sudoku, ptTopLeft, ptTopLeft, new MCvScalar(255, 0, 0), 10);
+            CvInvoke.Line(sudoku, ptBottomRight, ptBottomRight, new MCvScalar(255, 0, 0), 10);
+            CvInvoke.Line(sudoku, ptBottomLeft, ptBottomLeft, new MCvScalar(255, 0, 0), 10);
+
+            int maxLength = (ptBottomLeft.X - ptBottomRight.X) * (ptBottomLeft.X - ptBottomRight.X) + (ptBottomLeft.Y - ptBottomRight.Y) * (ptBottomLeft.Y - ptBottomRight.Y);
+            int temp = (ptTopRight.X - ptBottomRight.X) * (ptTopRight.X - ptBottomRight.X) + (ptTopRight.Y - ptBottomRight.Y) * (ptTopRight.Y - ptBottomRight.Y);
 
             if (temp > maxLength) maxLength = temp;
 
-            temp = (int)((ptTopRight.X - ptTopLeft.X) * (ptTopRight.X - ptTopLeft.X) + (ptTopRight.Y - ptTopLeft.Y) * (ptTopRight.Y - ptTopLeft.Y));
+            temp = (ptTopRight.X - ptTopLeft.X) * (ptTopRight.X - ptTopLeft.X) + (ptTopRight.Y - ptTopLeft.Y) * (ptTopRight.Y - ptTopLeft.Y);
 
             if (temp > maxLength) maxLength = temp;
 
-            temp = (int)((ptBottomLeft.X - ptTopLeft.X) * (ptBottomLeft.X - ptTopLeft.X) + (ptBottomLeft.Y - ptTopLeft.Y) * (ptBottomLeft.Y - ptTopLeft.Y));
+            temp = (ptBottomLeft.X - ptTopLeft.X) * (ptBottomLeft.X - ptTopLeft.X) + (ptBottomLeft.Y - ptTopLeft.Y) * (ptBottomLeft.Y - ptTopLeft.Y);
 
             if (temp > maxLength) maxLength = temp;
 
@@ -276,7 +282,46 @@ namespace SudokuSolver
             Mat undistorted = new Mat(new Size(maxLength, maxLength), DepthType.Cv8U, 1);
             CvInvoke.WarpPerspective(original, undistorted, CvInvoke.GetPerspectiveTransform(src, dst), new Size(maxLength, maxLength));
 
-            DisplayResult(undistorted);
+            Mat undistortedThreshed = undistorted.Clone();
+            CvInvoke.AdaptiveThreshold(undistorted, undistortedThreshed, 255, AdaptiveThresholdType.GaussianC, ThresholdType.BinaryInv, 101, 1);
+
+            int dist = (int)Math.Ceiling((double)maxLength / 9);
+            Mat currentCell = new Mat(dist, dist, DepthType.Cv8U, 1);
+
+            var dr = new DigitRecogniser();
+
+            var result = new int?[9, 9];
+
+            for (int j = 0; j < 9; j++)
+            {
+                for (int i = 4; i < 9; i++)
+                {
+                    var test = new byte[dist * dist];
+
+                    for (int y = 0; y < dist && j * dist + y < undistortedThreshed.Cols; y++)
+                    {
+                        for (int x = 0; x < dist && i * dist + x < undistortedThreshed.Rows; x++)
+                        {
+                            test[(y * dist) + x] = undistortedThreshed.GetRawData(j * dist + y, i * dist + x)[0];
+                        }
+                    }
+
+                    var image = new Image<Gray, byte>(dist, dist)
+                    {
+                        Bytes = test
+                    };
+                    currentCell = image.Mat;
+
+                    Moments m = CvInvoke.Moments(currentCell, true);
+                    int area = (int)m.M00;
+                    if (area > currentCell.Rows * currentCell.Cols / 5)
+                    {
+                        result[j, i] = dr.Classify(currentCell);
+                    }
+                }
+            }
+
+            DisplayResult(currentCell);
         }
 
         private void DrawLine(PointF line, Mat image, MCvScalar rgb)
